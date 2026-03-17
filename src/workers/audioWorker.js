@@ -8,7 +8,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 const { generateRealWaveform } = require('../utils/audioUtils'); // <-- ADD THIS
 const Track = require('../models/trackModel');
 if (!global.crypto) {
-    global.crypto = require('crypto');
+    global.crypto = require('node:crypto').webcrypto;
 }
 console.log("🛠️ Crypto polyfill loaded. Worker ready.");
 
