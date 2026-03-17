@@ -13,8 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
-app.set('trust proxy', 1);
-
+app.set('trust proxy', 1); // Add this line right after initializing app
 // ==========================================
 // 1. GLOBAL MIDDLEWARES & SECURITY
 // ==========================================
@@ -24,7 +23,7 @@ app.use(helmet());
 // Enable CORS (Cross-Origin Resource Sharing)
 app.use(
   cors({
-    origin: `${process.env.FRONTEND_URL}`, // Your frontend URL
+    origin: 'http://localhost:5173', // Your frontend URL
     credentials: true, // THIS IS THE KEY: Allows cookies to be sent/received
   })
 );
