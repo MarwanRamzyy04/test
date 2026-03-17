@@ -1,6 +1,5 @@
 # 1. Use a lightweight Node.js environment
-FROM node:18-bullseye-slim
-
+FROM node:20-bullseye-slim
 # 2. Install FFmpeg globally (Crucial for your audio worker!)
 RUN apt-get update && apt-get install -y ffmpeg
 
