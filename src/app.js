@@ -13,7 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
-
+app.set('trust proxy', 1); // Add this line right after initializing app
 // ==========================================
 // 1. GLOBAL MIDDLEWARES & SECURITY
 // ==========================================
