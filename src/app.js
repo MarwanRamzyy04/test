@@ -23,7 +23,7 @@ app.use(helmet());
 // Enable CORS (Cross-Origin Resource Sharing)
 app.use(
   cors({
-    origin: 'http://localhost:3000', // Your frontend URL
+    origin: 'http://localhost:5173', // Your frontend URL
     credentials: true, // THIS IS THE KEY: Allows cookies to be sent/received
   })
 );
