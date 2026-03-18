@@ -17,7 +17,6 @@ router.post('/verify-email', authController.verifyEmail);
 router.post('/resend-verification', authController.resendVerification);
 router.patch('/update-email', protect, authController.requestEmailUpdate);
 router.post('/confirm-email-update', authController.confirmEmailUpdate);
-router.get('/me', protect, authController.getMe);
 
 router.post('/forgot-password', authController.forgotPassword);
 router.patch('/reset-password', authController.resetPassword);
