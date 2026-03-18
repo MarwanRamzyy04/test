@@ -83,10 +83,10 @@ exports.handleGoogleCallback = async (req, res, next) => {
     });
     // ------------------------------------------
 
-    const frontendUrl = `http://localhost:5173/google/callback`; 
+    const frontendUrl = `http://localhost:5173/google/callback?permalink=${user.permalink}`; 
     
     // Redirect them to the homepage or a specific "auth success" page
-    res.redirect(`${frontendUrl}/`);
+    res.redirect(frontendUrl);
   } catch (error) {
     res
       .status(500)
