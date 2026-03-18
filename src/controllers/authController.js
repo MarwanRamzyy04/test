@@ -42,6 +42,27 @@ exports.refreshToken = async (req, res, next) => {
   }
 };
 
+// Get current logged-in user
+exports.getMe = async (req, res, next) => {
+  try {
+    // req.user should be set by your authentication middleware
+    // We fetch the user from the database to ensure we have the latest data
+    const user = await User.findById(req.user.id).select('-password'); 
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error("Error in getMe:", error);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+};
+
 exports.getGoogleAuthUrl = (req, res) => {
   const url = authService.getGoogleAuthUrl();
   res.status(200).json({ success: true, data: { url } });
