@@ -3,7 +3,7 @@ const authService = require('../services/authService');
 const cookieOptions = {
   httpOnly: true, // Prevents XSS attacks (JS cannot read the cookie)
   secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-  sameSite: 'strict', // Prevents CSRF attacks
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 };
 
 exports.refreshToken = async (req, res, next) => {
