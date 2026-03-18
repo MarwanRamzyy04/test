@@ -42,20 +42,6 @@ exports.refreshToken = async (req, res, next) => {
   }
 };
 
-// Get current logged-in user
-exports.getMe = async (req, res, next) => {
-  try {
-    // req.user is already fully loaded from your protect middleware!
-    res.status(200).json({
-      success: true,
-      data: req.user
-    });
-  } catch (error) {
-    console.error("Error in getMe:", error);
-    res.status(500).json({ success: false, error: 'Server Error' });
-  }
-};
-
 exports.getGoogleAuthUrl = (req, res) => {
   const url = authService.getGoogleAuthUrl();
   res.status(200).json({ success: true, data: { url } });
