@@ -69,9 +69,10 @@ exports.handleGoogleCallback = async (req, res, next) => {
     });
     // ------------------------------------------
 
-    res
-      .status(200)
-      .json({ success: true, data: { user, token, refreshToken } });
+    const frontendUrl = `http://localhost:5173`; 
+    
+    // Redirect them to the homepage or a specific "auth success" page
+    res.redirect(`${frontendUrl}/`);
   } catch (error) {
     res
       .status(500)
