@@ -33,20 +33,20 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-for']) {
+    // Takes "41.35.90.44:57064" and turns it into clean "41.35.90.44"
+    req.headers['x-forwarded-for'] = req.headers['x-forwarded-for'].split(',')[0].replace(/:\d+$/, '');
+  }
+  next();
+});
 // Limit requests from same IP (Brute Force Protection)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests
   
-  // -----------------------------------------
-  // ADD THIS LINE TO TURN OFF THE STRICT ERROR:
-  validate: false, 
-  // -----------------------------------------
-
-  keyGenerator: (req, res) => {
-    if (!req.ip) return 'unknown-ip';
-    return req.ip.replace(/:\d+$/, ''); 
-  }
+  // COMPLETELY DELETE the `keyGenerator` and `validate` lines!
+  // The rate limiter will just use its default, safe IP checker now.
 });
 app.use('/api', limiter);
 
