@@ -35,9 +35,17 @@ if (process.env.NODE_ENV === 'development') {
 
 // Limit requests from same IP (Brute Force Protection)
 const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000, // 1 hour
-  message: 'Too many requests from this IP, please try again in an hour!',
+  windowMs: 15 * 60 * 1000, // 15 minutes (or whatever you had before)
+  max: 100, // limit each IP to 100 requests (or whatever you had before)
+  
+  // -----------------------------------------
+  // ADD THIS KEYGENERATOR TO STRIP THE PORT:
+  // -----------------------------------------
+  keyGenerator: (req, res) => {
+    if (!req.ip) return 'unknown-ip';
+    // This removes the port number from the end of the IP address
+    return req.ip.replace(/:\d+$/, ''); 
+  }
 });
 app.use('/api', limiter);
 
