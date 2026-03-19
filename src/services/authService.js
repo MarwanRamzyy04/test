@@ -77,9 +77,12 @@ const handleGoogleCallback = async (code) => {
 
 const handleMobileGoogleLogin = async (idToken) => {
   const ticket = await googleClient.verifyIdToken({
-    idToken: idToken,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
+  idToken,
+  audience: [
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID,
+  ],
+});
   const payload = ticket.getPayload();
   const user = await findOrCreateGoogleUser(payload);
   const { token, refreshToken } = await generateTokens(user);
