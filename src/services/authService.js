@@ -120,7 +120,7 @@ const registerUser = async (userData, captchaToken) => {
     emailVerificationToken: verificationToken,
   });
 
-  const verificationUrl = `http://${process.env.FRONTEND_URL}/api/auth/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${process.env.FRONTEND_URL}/api/auth/verify-email?token=${verificationToken}`;
   const message = `Welcome to BioBeats, ${user.displayName}!\n\nPlease verify your account by clicking the link below:\n\n${verificationUrl}\n\nIf you did not request this, please ignore this email.`;
 
   try {
