@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const axios = require('axios'); // Needed for CAPTCHA verification
 const User = require('../models/userModel');
 const sendEmail = require('../utils/sendEmail');
+const AppError = require('../utils/appError');
 
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -32,7 +33,8 @@ const verifyRefreshToken = async (incomingRefreshToken) => {
     if (!user || user.refreshToken !== incomingRefreshToken) {
       throw new Error('Invalid or revoked refresh token');
     }
-    return generateTokens(user);
+    const { token, refreshToken } = await generateTokens(user);
+    return { token, refreshToken, user };
   } catch (error) {
     throw new Error('Unauthorized');
   }
@@ -77,16 +79,16 @@ const handleGoogleCallback = async (code) => {
 
 const handleMobileGoogleLogin = async (idToken) => {
   const ticket = await googleClient.verifyIdToken({
-  idToken,
-  audience: [
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_ANDROID_CLIENT_ID,
-    process.env.GOOGLE_ANDROID_CLIENT_ID_2,
-    process.env.GOOGLE_ANDROID_CLIENT_ID_3,
-    process.env.GOOGLE_ANDROID_CLIENT_ID_4,
-    process.env.GOOGLE_ANDROID_CLIENT_ID_5,
-  ],
-});
+    idToken,
+    audience: [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID_2,
+      process.env.GOOGLE_ANDROID_CLIENT_ID_3,
+      process.env.GOOGLE_ANDROID_CLIENT_ID_4,
+      process.env.GOOGLE_ANDROID_CLIENT_ID_5,
+    ],
+  });
   const payload = ticket.getPayload();
   const user = await findOrCreateGoogleUser(payload);
   const { token, refreshToken } = await generateTokens(user);
@@ -95,26 +97,26 @@ const handleMobileGoogleLogin = async (idToken) => {
 
 const loginUser = async (email, password) => {
   const user = await User.findOne({ email }).select('+password');
-  if (!user) throw new Error('Invalid email or password.');
+  if (!user) throw new AppError('Invalid email or password.', 401);
   const isMatch = await user.matchPassword(password);
-  if (!isMatch) throw new Error('Invalid email or password.');
+  if (!isMatch) throw new AppError('Invalid email or password.', 401);
   return user;
 };
 
 // UPDATED: Now requires and verifies a CAPTCHA token
 const registerUser = async (userData, captchaToken) => {
-  if (!captchaToken) throw new Error('CAPTCHA token is required.');
+  if (!captchaToken) throw new AppError('CAPTCHA token is required.', 400);
 
   // Verify CAPTCHA with Google
   const captchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${captchaToken}`;
   const captchaResponse = await axios.post(captchaVerifyUrl);
 
   if (!captchaResponse.data.success) {
-    throw new Error('CAPTCHA verification failed. Are you a bot?');
+    throw new AppError('CAPTCHA verification failed. Are you a bot?', 400);
   }
 
   const existingUser = await User.findOne({ email: userData.email });
-  if (existingUser) throw new Error('Email is already registered.');
+  if (existingUser) throw new AppError('Email is already registered.', 409);
 
   const verificationToken = crypto.randomBytes(20).toString('hex');
 
@@ -142,7 +144,7 @@ const registerUser = async (userData, captchaToken) => {
 
 const verifyEmail = async (token) => {
   const user = await User.findOne({ emailVerificationToken: token });
-  if (!user) throw new Error('Invalid or expired verification token.');
+  if (!user) throw new AppError('Invalid or expired verification token.', 400);
   user.isEmailVerified = true;
   user.emailVerificationToken = undefined;
   await user.save();
@@ -151,7 +153,7 @@ const verifyEmail = async (token) => {
 
 const generatePasswordReset = async (email) => {
   const user = await User.findOne({ email });
-  if (!user) throw new Error('No user found with that email.');
+  if (!user) throw new AppError('No user found with that email.', 404);
 
   const resetToken = crypto.randomBytes(20).toString('hex');
   user.resetPasswordToken = resetToken;
@@ -159,7 +161,7 @@ const generatePasswordReset = async (email) => {
   await user.save();
 
   // NEW: Actually send the email via Nodemailer!
-  const resetUrl = `http://${process.env.FRONTEND_URL}/api/auth/reset-password?token=${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/api/auth/reset-password?token=${resetToken}`;
 
   const message = `You are receiving this email because you (or someone else) requested a password reset for your BioBeats account.\n\nPlease use the following link to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
 
@@ -175,7 +177,7 @@ const generatePasswordReset = async (email) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
-    throw new Error('Email could not be sent. Please try again later.');
+    throw new AppError('Email could not be sent. Please try again later.', 500);
   }
 
   return { user, resetToken };
@@ -186,7 +188,9 @@ const resetPassword = async (token, newPassword) => {
     resetPasswordToken: token,
     resetPasswordExpire: { $gt: Date.now() },
   });
-  if (!user) throw new Error('Invalid or expired password reset token.');
+  if (!user) {
+    throw new AppError('Invalid or expired password reset token.', 400);
+  }
   user.password = newPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
@@ -211,7 +215,7 @@ const resendVerificationEmail = async (email) => {
   user.emailVerificationToken = verificationToken;
   await user.save();
 
-  const verificationUrl = `http://${process.env.FRONTEND_URL}/api/auth/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${process.env.FRONTEND_URL}/api/auth/verify-email?token=${verificationToken}`;
   const message = `Hi ${user.displayName},\n\nHere is your new verification link:\n\n${verificationUrl}\n\nThis link does not expire automatically — request a new one if needed.`;
 
   await sendEmail({
@@ -224,10 +228,12 @@ const resendVerificationEmail = async (email) => {
 const requestEmailUpdate = async (userId, newEmail) => {
   // 1. Check the new email isn't already taken
   const existing = await User.findOne({ email: newEmail });
-  if (existing) throw new Error('That email address is already registered.');
+  if (existing) {
+    throw new AppError('That email address is already registered.', 409);
+  }
 
   const user = await User.findById(userId);
-  if (!user) throw new Error('User not found.');
+  if (!user) throw new AppError('User not found.', 404);
 
   // 2. Generate a token and temporarily store the pending new email
   const token = crypto.randomBytes(20).toString('hex');
@@ -236,7 +242,7 @@ const requestEmailUpdate = async (userId, newEmail) => {
   await user.save();
 
   // 3. Send the verification link to the NEW address (not the current one)
-  const confirmUrl = `http://${process.env.FRONTEND_URL}/api/auth/confirm-email-update?token=${token}`;
+  const confirmUrl = `${process.env.FRONTEND_URL}/api/auth/confirm-email-update?token=${token}`;
   const message = `Hi ${user.displayName},\n\nClick the link below to confirm your new email address:\n\n${confirmUrl}\n\nIf you did not request this, you can ignore this email.`;
 
   await sendEmail({
@@ -250,7 +256,7 @@ const requestEmailUpdate = async (userId, newEmail) => {
 const confirmEmailUpdate = async (token) => {
   const user = await User.findOne({ pendingEmailToken: token });
   if (!user || !user.pendingEmail) {
-    throw new Error('Invalid or expired email update token.');
+    throw new AppError('Invalid or expired email update token.', 400);
   }
 
   user.email = user.pendingEmail;
