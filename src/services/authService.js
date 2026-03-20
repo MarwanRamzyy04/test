@@ -81,6 +81,10 @@ const handleMobileGoogleLogin = async (idToken) => {
   audience: [
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_ANDROID_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID_2,
+    process.env.GOOGLE_ANDROID_CLIENT_ID_3,
+    process.env.GOOGLE_ANDROID_CLIENT_ID_4,
+    process.env.GOOGLE_ANDROID_CLIENT_ID_5,
   ],
 });
   const payload = ticket.getPayload();
